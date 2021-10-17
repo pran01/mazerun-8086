@@ -1,3 +1,25 @@
+; multi-segment executable file template.
+
+data segment
+    ; add your data here!
+    CHAR_X DW 10
+    CHAR_Y DW 10
+    CHAR_SIZE DW 10
+ends
+
+stack segment
+    dw   128  dup(0)
+ends
+
+code segment
+start:
+   MAIN PROC
+; set segment registers:
+    mov ax, data
+    mov ds, ax
+    mov es, ax
+
+    ;add your code here
 MOV AH,00H;SET VIDEO MODE
 MOV AL,12H;RESOLUTION 320x200
 INT 10H
@@ -265,5 +287,30 @@ INC DX
 INT 10H
 CMP DX,300
 JB V9
+CALL DRAW_CHAR
+ret       
+   MAIN ENDP
+    DRAW_CHAR PROC
+    MOV CX,CHAR_X
+    MOV DX,CHAR_Y
+    MOV AH,0CH
+    MOV AL,00H
+    DRAW:
+    INT 10H
+    INC CX
+    MOV BX,CX
+    SUB BX,CHAR_X
+    CMP BX,CHAR_SIZE
+    JNG DRAW
+    MOV CX,CHAR_X
+    INC DX
+    MOV BX,DX
+    SUB BX,CHAR_Y
+    CMP BX,CHAR_SIZE
+    JNG DRAW
+    RET    
+    DRAW_CHAR ENDP
+        
+ends
 
-ret
+end start ; set entry point and stop the assembler.

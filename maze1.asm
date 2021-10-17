@@ -2,8 +2,8 @@
 
 data segment
     ; add your data here!
-    CHAR_X DW 10
-    CHAR_Y DW 10
+    CHAR_X DW 14
+    CHAR_Y DW 9
     CHAR_SIZE DW 10
 ends
 
@@ -288,13 +288,17 @@ INT 10H
 CMP DX,300
 JB V9
 CALL DRAW_CHAR
-ret       
-   MAIN ENDP
+
+CALL INPUT
+
+ret
+      
+MAIN ENDP
     DRAW_CHAR PROC
     MOV CX,CHAR_X
     MOV DX,CHAR_Y
     MOV AH,0CH
-    MOV AL,00H
+    MOV AL,0FH
     DRAW:
     INT 10H
     INC CX
@@ -310,6 +314,70 @@ ret
     JNG DRAW
     RET    
     DRAW_CHAR ENDP
+
+;--------------------------------------------------
+INPUT PROC
+    INP:
+        MOV AH,00H
+        INT 16H
+        CMP AH,48H ;IF ARROW UP IS PRESSSED
+        JE UP
+        CMP AH,50H ;DOWN KEY
+        JE DOWN
+        CMP AH,4BH ;LEFT
+        JE LEFT
+        CMP AH,4DH ;RIGHT
+        JE RIGHT
+        CMP AL,1BH
+        JE ESCAPE
+        JMP INP
+    RIGHT:
+        CALL DELETE_CHAR
+        MOV CX,CHAR_X
+        ADD CX,10
+        MOV CHAR_X,CX
+        CALL DRAW_CHAR
+        JMP INP
+    UP:
+        CALL DELETE_CHAR
+        SUB CHAR_Y,10
+        CALL DRAW_CHAR
+        JMP INP
+    LEFT:
+        CALL DELETE_CHAR
+        SUB CHAR_X,10
+        CALL DRAW_CHAR
+        JMP INP
+    DOWN:
+        CALL DELETE_CHAR
+        ADD CHAR_Y,10
+        CALL DRAW_CHAR
+        JMP INP
+    ESCAPE:
+        RET
+INPUT ENDP
+
+;-------------------------------------------------
+DELETE_CHAR PROC
+    MOV CX,CHAR_X
+    MOV DX,CHAR_Y
+    MOV AH,0CH
+    MOV AL,00H
+    DELETE:
+    INT 10H
+    INC CX
+    MOV BX,CX
+    SUB BX,CHAR_X;make some changes
+    CMP BX,CHAR_SIZE
+    JNG DRAW
+    MOV CX,CHAR_X
+    INC DX
+    MOV BX,DX
+    SUB BX,CHAR_Y
+    CMP BX,CHAR_SIZE
+    JNG DELETE
+    RET
+DELETE_CHAR ENDP
         
 ends
 

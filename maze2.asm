@@ -8,6 +8,7 @@ DATA SEGMENT
     SCORE_1 DB '0'
     SCORE_2 DB '0'
     MIN_SCORE DB "MIN STEP:","$"
+    LV DB "LV:","$"
     bool db 0
 ENDS
 STACK SEGMENT
@@ -26,6 +27,7 @@ MOV AL,12H;RESOLUTION 320x200
 INT 10H
 CALL SHOW_SCORE
 CALL SHOW_MINSCORE
+CALL SHOW_LEVEL
 MOV AL,0DH ;MAGENTA
 MOV AH,0CH ;WRITE PIXEL
 
@@ -838,6 +840,25 @@ INT 10H
     RET
 SHOW_SCORE ENDP
 
+SHOW_LEVEL PROC
+    MOV DL,15
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    LEA DX,LV
+    MOV AH,09
+    INT 21H
+    MOV DL,20
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH;RED
+    MOV AH,0EH
+    MOV AL,'2'
+    INT 10H
+    RET
+SHOW_LEVEL ENDP
+
 SHOW_MINSCORE PROC
     MOV DL,25
     MOV DH,1
@@ -887,7 +908,7 @@ check proc
     MOV AH,0DH 
     MOV BH,0 
     INT 10H  
-    cmp al,0DH             ;reads the pixel colour to b used for boundry check 
+    cmp al,0DH
     jne ex 
     mov bool,1 
     ex: 

@@ -820,9 +820,9 @@ SHOW_MINSCORE PROC
     MOV AH,0EH
     MOV AL,'1'
     INT 10H
-    MOV AL,'1'
+    MOV AL,'7'
     INT 10H
-    MOV AL,'0'
+    MOV AL,'2'
     INT 10H
     RET
 SHOW_MINSCORE ENDP

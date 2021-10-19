@@ -3,11 +3,12 @@ DATA SEGMENT
     CHAR_Y DW 54
     CHAR_SIZE DW 10
     MOVES DW 0
-    STRING DB "Score: ","$"
+    STRING DB "STEP: ","$"
     SCORE_0 DB '0'
     SCORE_1 DB '0'
     SCORE_2 DB '0'
-    MIN_SCORE DB "MIN SCORE:","$"
+    MIN_SCORE DB "MIN STEP:","$"
+    bool db 0
 ENDS
 STACK SEGMENT
     DW 128 DUP(0)
@@ -724,6 +725,13 @@ INPUT PROC
         JE ESCAPE
         JMP INP
     RIGHT:
+        MOV CX,CHAR_X;COLUMN NUMBER
+        ADD CX,16
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         MOV CX,CHAR_X
@@ -731,19 +739,39 @@ INPUT PROC
         MOV CHAR_X,CX
         CALL DRAW_CHAR
         JMP INP
-    UP: 
+    UP:
+        MOV CX,CHAR_X
+        MOV DX,CHAR_Y
+        SUB DX,4
+        call check 
+        cmp bool,1  
+        je exit 
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_Y,10
         CALL DRAW_CHAR
         JMP INP
     LEFT:
+        MOV CX,CHAR_X
+        SUB CX,4
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_X,10
         CALL DRAW_CHAR
         JMP INP
     DOWN:
+        MOV CX,CHAR_X
+        ADD CX,5
+        MOV DX,CHAR_Y
+        ADD DX,16
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         ADD CHAR_Y,10
@@ -751,6 +779,9 @@ INPUT PROC
         JMP INP
     ESCAPE:
         RET
+    exit: 
+        mov bool,0 
+        jmp inp
 INPUT ENDP
 
 ;-------------------------------------------------
@@ -822,7 +853,7 @@ SHOW_MINSCORE PROC
     INT 10H
     MOV AL,'7'
     INT 10H
-    MOV AL,'2'
+    MOV AL,'3'
     INT 10H
     RET
 SHOW_MINSCORE ENDP
@@ -848,6 +879,18 @@ CALC_SCORE PROC
    RET
 CALC_SCORE ENDP
 
+check proc 
+    push  bx 
+    MOV AH,0DH 
+    MOV BH,0 
+    INT 10H  
+    cmp al,0DH             ;reads the pixel colour to b used for boundry check 
+    jne ex 
+    mov bool,1 
+    ex: 
+    pop bx 
+    ret 
+check endp
         
 ENDS
 

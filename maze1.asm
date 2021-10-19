@@ -12,6 +12,7 @@ data segment
     SCORE_2 DB '0'
     MIN_SCORE DB "MIN STEP:","$"
     MIN_SCORE_NUM DB "110","$"
+    bool db 0
 ends
 
 stack segment
@@ -334,6 +335,13 @@ INPUT PROC
         JE ESCAPE
         JMP INP
     RIGHT:
+        MOV CX,CHAR_X;COLUMN NUMBER
+        ADD CX,16
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         MOV CX,CHAR_X
@@ -342,18 +350,38 @@ INPUT PROC
         CALL DRAW_CHAR
         JMP INP
     UP: 
+        MOV CX,CHAR_X
+        MOV DX,CHAR_Y
+        SUB DX,9
+        call check 
+        cmp bool,1  
+        je exit 
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_Y,10
         CALL DRAW_CHAR
         JMP INP
     LEFT:
+        MOV CX,CHAR_X
+        SUB CX,4
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_X,10
         CALL DRAW_CHAR
         JMP INP
     DOWN:
+        MOV CX,CHAR_X
+        ADD CX,5
+        MOV DX,CHAR_Y
+        ADD DX,11
+        call check 
+        cmp bool,1  
+        je exit
         CALL CALC_SCORE
         CALL DELETE_CHAR
         ADD CHAR_Y,10
@@ -361,6 +389,9 @@ INPUT PROC
         JMP INP
     ESCAPE:
         RET
+    exit: 
+        mov bool,0 
+        jmp inp
 INPUT ENDP
 
 ;-------------------------------------------------
@@ -414,6 +445,29 @@ INT 10H
     RET
 SHOW_SCORE ENDP
 
+SHOW_MINSCORE PROC
+    MOV DL,25
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    LEA DX,MIN_SCORE
+    MOV AH,09H
+    INT 21H
+    MOV DL,35
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH
+    MOV AH,0EH
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'0'
+    INT 10H
+    RET
+SHOW_MINSCORE ENDP
+
 
 CALC_SCORE PROC
     CMP SCORE_2,'9'
@@ -436,6 +490,18 @@ CALC_SCORE PROC
    RET
 CALC_SCORE ENDP
 
+check proc 
+    push  bx 
+    MOV AH,0DH 
+    MOV BH,0 
+    INT 10H  
+    cmp al,0DH             ;reads the pixel colour to b used for boundry check 
+    jne ex 
+    mov bool,1 
+    ex: 
+    pop bx 
+    ret 
+check endp
         
 ends
 

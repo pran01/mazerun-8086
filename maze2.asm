@@ -779,7 +779,10 @@ INPUT PROC
         JMP INP
     ESCAPE:
         RET
-    exit: 
+    exit:
+        mov ah,02h
+        mov dl,07h
+        int 21h 
         mov bool,0 
         jmp inp
 INPUT ENDP

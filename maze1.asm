@@ -389,7 +389,10 @@ INPUT PROC
         JMP INP
     ESCAPE:
         RET
-    exit: 
+    exit:
+        mov ah,02h
+        mov dl,07h
+        int 21h 
         mov bool,0 
         jmp inp
 INPUT ENDP
@@ -497,7 +500,7 @@ check proc
     INT 10H  
     cmp al,0DH             ;reads the pixel colour to b used for boundry check 
     jne ex 
-    mov bool,1 
+    mov bool,1
     ex: 
     pop bx 
     ret 

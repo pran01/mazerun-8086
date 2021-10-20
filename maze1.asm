@@ -5,7 +5,6 @@ data segment
     CHAR_X DW 14
     CHAR_Y DW 59
     CHAR_SIZE DW 10
-    MOVES DW 0
     STRING DB "STEP: ","$"
     SCORE_0 DB '0'
     SCORE_1 DB '0'
@@ -308,7 +307,7 @@ MAIN ENDP
     INC CX
     MOV BX,CX
     SUB BX,CHAR_X
-    CMP BX,CHAR_SIZE
+    CMP BX,CHAR_SIZE;(CX-char_x<char_size)
     JNG DRAW
     MOV CX,CHAR_X
     INC DX
@@ -323,7 +322,7 @@ MAIN ENDP
 INPUT PROC
     INP:
         MOV AH,00H
-        INT 16H
+        INT 16H ;AH CONTAINS SCAN CODE AND AL CONTAINS ASCII
         CMP AH,48H ;IF ARROW UP IS PRESSSED
         JE UP
         CMP AH,50H ;DOWN KEY
@@ -332,7 +331,7 @@ INPUT PROC
         JE LEFT
         CMP AH,4DH ;RIGHT
         JE RIGHT
-        CMP AL,1BH
+        CMP AL,1BH;esc
         JE ESCAPE
         JMP INP
     RIGHT:
@@ -426,7 +425,7 @@ SHOW_SCORE PROC
     MOV DL,1;column
     MOV DH,1;row
     MOV AH,02
-    INT 10H
+    INT 10H;setting cursor position
 LEA DX,STRING 
   
  ;output the string
@@ -438,7 +437,7 @@ LEA DX,STRING
  MOV AH,02
  INT 10H
  mov  al, SCORE_0
-mov  bl, 0Ch  ;Color is orange
+mov  bl, 0Ch  ;Color is red
 mov  bh, 0    ;Display page
 mov  ah, 0Eh  ;Teletype
 int  10h
@@ -453,7 +452,7 @@ SHOW_MINSCORE PROC
     MOV DL,25
     MOV DH,1
     MOV AH,02
-    INT 10H
+    INT 10H;setting cursor position
     LEA DX,MIN_SCORE
     MOV AH,09H
     INT 21H
@@ -513,15 +512,13 @@ CALC_SCORE PROC
 CALC_SCORE ENDP
 
 check proc 
-    push  bx 
     MOV AH,0DH 
     MOV BH,0 
-    INT 10H  
-    cmp al,0DH             ;reads the pixel colour to b used for boundry check 
+    INT 10H;reads the pixel  
+    cmp al,0DH;al contains the colour 
     jne ex 
     mov bool,1
-    ex: 
-    pop bx 
+    ex:
     ret 
 check endp
         

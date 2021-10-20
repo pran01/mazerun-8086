@@ -829,7 +829,7 @@ LEA DX,STRING
  MOV AH,02
  INT 10H
  mov  al, SCORE_0
-mov  bl, 0Ch  ;Color is red
+mov  bl, 0Ch  ;Color is orange
 mov  bh, 0    ;Display page
 mov  ah, 0Eh  ;Teletype
 int  10h

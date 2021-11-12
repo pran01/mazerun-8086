@@ -375,6 +375,10 @@ INPUT PROC
         CALL DRAW_CHAR
         JMP INP
     DOWN:
+        MOV DX,CHAR_Y
+        ADD DX,20
+        CMP DX,350
+        JA LV1COMPLETE
         MOV CX,CHAR_X
         ADD CX,5
         MOV DX,CHAR_Y
@@ -388,13 +392,19 @@ INPUT PROC
         CALL DRAW_CHAR
         JMP INP
     ESCAPE:
-        RET
+        MOV AH,00H;SET VIDEO MODE
+        MOV AL,12H;RESOLUTION
+        INT 10H
     exit:
         mov ah,02h
         mov dl,07h
         int 21h 
         mov bool,0 
         jmp inp
+    LV1COMPLETE:
+        MOV AH,00H;SET VIDEO MODE
+        MOV AL,12H;RESOLUTION
+        INT 10H
 INPUT ENDP
 
 ;-------------------------------------------------

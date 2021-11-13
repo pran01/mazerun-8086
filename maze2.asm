@@ -2,7 +2,6 @@ DATA SEGMENT
     CHAR_X DW 4
     CHAR_Y DW 54
     CHAR_SIZE DW 10
-    MOVES DW 0
     STRING DB "STEP: ","$"
     SCORE_0 DB '0'
     SCORE_1 DB '0'
@@ -12,7 +11,7 @@ DATA SEGMENT
     bool db 0
 ENDS
 STACK SEGMENT
-    DW 128 DUP(0)
+    DW 128 DUP(0)   ;initializes stack
 ENDS
 
 CODE SEGMENT
@@ -689,11 +688,11 @@ ret
 MAIN ENDP  
 ;-------------------------------------------------- 
 
-     DRAW_CHAR PROC
+    DRAW_CHAR PROC
     MOV CX,CHAR_X
     MOV DX,CHAR_Y
-    MOV AH,0CH
-    MOV AL,0FH
+    MOV AH,0CH ;write a pixel
+    MOV AL,0FH ;white colour
     DRAW:
     INT 10H
     INC CX
@@ -723,21 +722,19 @@ INPUT PROC
         JE LEFT
         CMP AH,4DH ;RIGHT
         JE RIGHT
-        CMP AL,1BH
+        CMP AL,1BH ;ESCAPE
         JE ESCAPE
         JMP INP
     RIGHT:
-        MOV CX,CHAR_X
-        ADD CX,20
-        CMP CX,300
-        JA LV2COMPLETE
         MOV CX,CHAR_X;COLUMN NUMBER
         ADD CX,16
         MOV DX,CHAR_Y
-        ADD DX,4
-        call check 
-        cmp bool,1  
-        je exit
+        ADD DX,4  
+        CMP CX,300
+        JA LV2COMPLETE
+        CALL CHECK 
+        CMP BOOL,1  
+        JE EXIT
         CALL CALC_SCORE
         CALL DELETE_CHAR
         MOV CX,CHAR_X
@@ -749,9 +746,9 @@ INPUT PROC
         MOV CX,CHAR_X
         MOV DX,CHAR_Y
         SUB DX,4
-        call check 
-        cmp bool,1  
-        je exit 
+        CALL CHECK 
+        CMP BOOL,1  
+        JE EXIT 
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_Y,10
@@ -762,9 +759,9 @@ INPUT PROC
         SUB CX,4
         MOV DX,CHAR_Y
         ADD DX,4
-        call check 
-        cmp bool,1  
-        je exit
+        CALL CHECK 
+        CMP BOOL,1  
+        JE EXIT 
         CALL CALC_SCORE
         CALL DELETE_CHAR
         SUB CHAR_X,10
@@ -775,30 +772,28 @@ INPUT PROC
         ADD CX,5
         MOV DX,CHAR_Y
         ADD DX,16
-        call check 
-        cmp bool,1  
-        je exit
+        CALL CHECK 
+        CMP BOOL,1  
+        JE EXIT 
         CALL CALC_SCORE
         CALL DELETE_CHAR
         ADD CHAR_Y,10
         CALL DRAW_CHAR
         JMP INP
     ESCAPE:
-        MOV AH,00H;SET VIDEO MODE
-        MOV AL,12H;RESOLUTION 320x200
+        MOV AH,00H
+        MOV AL,12H
         INT 10H
-        ret
-    exit:
-        mov ah,02h
-        mov dl,07h
-        int 21h 
-        mov bool,0 
-        jmp inp
-     LV2COMPLETE:
-        MOV AH,00H;SET VIDEO MODE
-        MOV AL,12H;RESOLUTION 320x200
+    EXIT:
+        MOV AH,02H
+        MOV DL,07H ;beep sound
+        INT 21H 
+        MOV BOOL,0
+        JMP INP
+    LV2COMPLETE:
+        MOV AH,00H
+        MOV AL,12H
         INT 10H
-        ret
 INPUT ENDP
 
 ;-------------------------------------------------
@@ -806,7 +801,7 @@ DELETE_CHAR PROC
     MOV CX,CHAR_X
     MOV DX,CHAR_Y
     MOV AH,0CH
-    MOV AL,00H
+    MOV AL,00H;black colour
     DELETE:
     INT 10H
     INC CX
@@ -828,7 +823,7 @@ DELETE_CHAR ENDP
 SHOW_SCORE PROC
     MOV DL,1;column
     MOV DH,1;row
-    MOV AH,02
+    MOV AH,02  ;setting cursor position
     INT 10H
 LEA DX,STRING 
   
@@ -836,22 +831,22 @@ LEA DX,STRING
  ;loaded in dx 
  MOV AH,09H
  INT 21H
- MOV DL,8
+ MOV DL,8 ;for 000
  MOV DH,1
  MOV AH,02
  INT 10H
- mov  al, SCORE_0
-mov  bl, 0Ch  ;Color is orange
-mov  bh, 0    ;Display page
-mov  ah, 0Eh  ;Teletype
-int  10h
-mov al,SCORE_1
-int 10h
-MOV AL,SCORE_2
-INT 10H
+ MOV AL, SCORE_0
+ MOV BL, 0Ch  ;Color is orange
+ MOV BH, 0    ;Display page
+ MOV AH, 0Eh  ;Teletype
+ INT 10H
+ MOV AL,SCORE_1
+ INT 10H
+ MOV AL,SCORE_2
+ INT 10H
     RET
 SHOW_SCORE ENDP
-
+;--------------------------------------------------------------------
 SHOW_LEVEL PROC
     MOV DL,15
     MOV DH,1
@@ -870,7 +865,7 @@ SHOW_LEVEL PROC
     INT 10H
     RET
 SHOW_LEVEL ENDP
-
+;--------------------------------------------------------------------
 SHOW_MINSCORE PROC
     MOV DL,25
     MOV DH,1
@@ -893,7 +888,7 @@ SHOW_MINSCORE PROC
     INT 10H
     RET
 SHOW_MINSCORE ENDP
-
+;--------------------------------------------------------------------
 CALC_SCORE PROC
     CMP SCORE_2,'9'
     JE TENTH_PLACE
@@ -914,21 +909,18 @@ CALC_SCORE PROC
    CALL SHOW_SCORE
    RET
 CALC_SCORE ENDP
-
-check proc 
-    push  bx 
-    MOV AH,0DH 
+;--------------------------------------------------------------------
+CHECK PROC 
+    MOV AH,0DH ;reading pixel
     MOV BH,0 
     INT 10H  
-    cmp al,0DH
-    jne ex 
-    mov bool,1 
-    ex: 
-    pop bx 
-    ret 
-check endp
-        
+    CMP AL,0DH
+    JNE EX 
+    MOV BOOL,1 
+    EX: 
+    RET 
+CHECK ENDP
+;--------------------------------------------------------------------        
 ENDS
 
 END START 
-

@@ -2,8 +2,8 @@
 
 data segment
     ; add your data here!
-    CHAR_X DW 14
-    CHAR_Y DW 59
+    CHAR_X DW 5
+    CHAR_Y DW 54
     CHAR_SIZE DW 10
     STRING DB "STEP: ","$"
     SCORE_0 DB '0'
@@ -11,7 +11,18 @@ data segment
     SCORE_2 DB '0'
     MIN_SCORE DB "MIN STEP:","$"
     LV DB "LV.","$"
+    QUIT_MSG DW "DO YOU WANT TO QUIT?","$"
+    CONFIRMATION DB "(PRESS Y TO CONFIRM)","$"
+    LVL_UP_MSG DB "DO YOU WANT TO MOVE TO NEXT LEVEL?","$"
     bool db 0
+    LV2_DOWN_BOUND DW 16
+    LV2_UP_BOUND DW 4
+    LV2_LEFT_BOUND DW 5
+    LV2_RIGHT_BOUND DW 15
+    LV3_DOWN_BOUND DW 16
+    LV3_UP_BOUND DW 4
+    LV3_LEFT_BOUND DW 5
+    LV3_RIGHT_BOUND DW 15
 ends
 
 stack segment
@@ -27,275 +38,972 @@ start:
     mov es, ax
 
     ;add your code here
-MOV AH,00H;SET VIDEO MODE
-MOV AL,12H;RESOLUTION
-INT 10H
-CALL SHOW_SCORE
-CALL SHOW_MINSCORE
-CALL SHOW_LEVEL
-MOV AL,0DH ;MAGENTA
-MOV AH,0CH ;WRITE PIXEL
-
-;HORIZONTAL LINES
-MOV CX,0
-MOV DX,50
-INT 10H
-H1:
-INC CX
-INT 10H
-CMP CX,300
-JB H1
-
-MOV DX,80
-MOV CX,20
-INT 10H
-H3:
-INC CX
-INT 10H
-CMP CX,240
-JB H3
-
-MOV CX,260
-INT 10H
-H4:
-INC CX
-INT 10H
-CMP CX,300
-JB H4
-
-MOV DX,110
-MOV CX,0
-INT 10H
-H5:
-INC CX
-INT 10H
-CMP CX,160
-JB H5
-
-MOV CX,180
-INT 10H
-H6:
-INC CX
-INT 10H
-CMP CX,280
-JB H6
-
-MOV DX,140
-MOV CX,20
-INT 10H
-H7:
-INC CX
-INT 10H
-CMP CX,260
-JB H7
-
-MOV CX,280
-INT 10H
-H8:
-INC CX
-INT 10H
-CMP CX,300
-JB H8
-
-MOV DX,170
-MOV CX,0
-INT 10H
-H9:
-INC CX
-INT 10H
-CMP CX,40
-JB H9
-
-MOV CX,60
-INT 10H
-H10:
-INC CX
-INT 10H
-CMP CX,300
-JB H10
-
-MOV DX,200
-MOV CX,0
-INT 10H
-H11:
-INC CX
-INT 10H
-CMP CX,20
-JB H11
-
-MOV CX,40
-INT 10H
-H12:
-INC CX
-INT 10H
-CMP CX,260
-JB H12
-
-MOV CX,280
-INT 10H
-H13:
-INC CX
-INT 10H
-CMP CX,300
-JB H13
-
-MOV DX,230
-MOV CX,20
-INT 10H
-H14:
-INC CX
-INT 10H
-CMP CX,220
-JB H14
-
-MOV CX,240
-INT 10H
-H15:
-INC CX
-INT 10H
-CMP CX,300
-JB H15
-
-MOV DX,270
-MOV CX,0
-INT 10H
-H16:
-INC CX
-INT 10H
-CMP CX,60
-JB H16
-
-MOV CX,80
-INT 10H
-H17:
-INC CX
-INT 10H
-CMP CX,280
-JB H17
-
-MOV DX,310
-MOV CX,20
-INT 10H
-H18:
-INC CX
-INT 10H
-CMP CX,60
-JB H18
-
-MOV CX,80
-INT 10H
-H19:
-INC CX
-INT 10H
-CMP CX,300
-JB H19
-
-MOV DX,350
-MOV CX,0
-INT 10H
-H20:
-INC CX
-INT 10H
-CMP CX,260
-JB H20
-
-MOV CX,280
-INT 10H
-H21:
-INC CX
-INT 10H
-CMP CX,300
-JB H21
-
-;VERTICAL LINES
-MOV DX,50
-MOV CX,0
-INT 10H
-V1:
-INC DX
-INT 10H
-CMP DX,350
-JB V1
-
-MOV DX,50
-MOV CX,300
-INT 10H
-V2:
-INC DX
-INT 10H
-CMP DX,350
-JB V2
-
-MOV DX,80
-MOV CX,120
-INT 10H
-V3:
-INC DX
-INT 10H
-CMP DX,110
-JB V3
-
-MOV DX,110
-MOV CX,220
-INT 10H
-V4:
-INC DX
-INT 10H
-CMP DX,140
-JB V4
-
-MOV DX,140
-MOV CX,180
-INT 10H
-V5:
-INC DX
-INT 10H
-CMP DX,170
-JB V5
-
-MOV DX,200
-MOV CX,120
-INT 10H
-V6:
-INC DX
-INT 10H
-CMP DX,230
-JB V6
-
-MOV DX,230
-MOV CX,180
-INT 10H
-V7:
-INC DX
-INT 10H
-CMP DX,270
-JB V7
-
-MOV DX,270
-MOV CX,260
-INT 10H
-V8:
-INC DX
-INT 10H
-CMP DX,310
-JB V8
-
-MOV DX,310
-MOV CX,20
-INT 10H
-V9:
-INC DX
-INT 10H
-CMP DX,350
-JB V9
-CALL DRAW_CHAR
-
-
-CALL INPUT
-
-ret
-      
+    MOV AH,00H;SET VIDEO MODE
+    MOV AL,12H;RESOLUTION
+    INT 10H
+    CALL LEVEL2
+    ret     
 MAIN ENDP
+;------------------------------------------------------
+
+CLEAR_SCR PROC
+    MOV CX,0
+    MOV DX,0
+    MOV AH,0CH
+    MOV AL,00H
+    CLEAR:
+    INT 10H
+    INC CX
+    CMP CX,500
+    JNG CLEAR
+    MOV CX,0
+    INC DX
+    CMP DX,500
+    JNG CLEAR
+    RET
+CLEAR_SCR ENDP    
+
+;-----------------------------------------------------
+
+LEVEL3 PROC
+    CALL SHOW_SCORE
+    CALL SHOW_MINSCORE
+    CALL SHOW_LEVEL
+    CALL CREATE_MAZE3
+    CALL DRAW_CHAR
+    CALL INPUT
+    RET
+LEVEL3 ENDP
+
+;---------------------------------------------------
+
+LEVEL2 PROC
+    CALL SHOW_SCORE
+    CALL SHOW_MINSCORE
+    CALL SHOW_LEVEL
+    CALL CREATE_MAZE2
+    CALL DRAW_CHAR
+    CALL INPUT
+    RET
+LEVEL2 ENDP
+
+;------------------------------------------------------
+   
+CREATE_MAZE2 PROC
+    MOV AL,0DH ;MAGENTA
+    MOV AH,0CH ;WRITE PIXEL
+    
+    ;HORIZONTAL LINES
+    MOV CX,0
+    MOV DX,50
+    INT 10H
+    H1:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H1
+    
+    MOV DX,80
+    MOV CX,20
+    INT 10H
+    H3:
+    INC CX
+    INT 10H
+    CMP CX,240
+    JB H3
+    
+    MOV CX,260
+    INT 10H
+    H4:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H4
+    
+    MOV DX,110
+    MOV CX,0
+    INT 10H
+    H5:
+    INC CX
+    INT 10H
+    CMP CX,160
+    JB H5
+    
+    MOV CX,180
+    INT 10H
+    H6:
+    INC CX
+    INT 10H
+    CMP CX,280
+    JB H6
+    
+    MOV DX,140
+    MOV CX,20
+    INT 10H
+    H7:
+    INC CX
+    INT 10H
+    CMP CX,260
+    JB H7
+    
+    MOV CX,280
+    INT 10H
+    H8:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H8
+    
+    MOV DX,170
+    MOV CX,0
+    INT 10H
+    H9:
+    INC CX
+    INT 10H
+    CMP CX,40
+    JB H9
+    
+    MOV CX,60
+    INT 10H
+    H10:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H10
+    
+    MOV DX,200
+    MOV CX,0
+    INT 10H
+    H11:
+    INC CX
+    INT 10H
+    CMP CX,20
+    JB H11
+    
+    MOV CX,40
+    INT 10H
+    H12:
+    INC CX
+    INT 10H
+    CMP CX,260
+    JB H12
+    
+    MOV CX,280
+    INT 10H
+    H13:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H13
+    
+    MOV DX,230
+    MOV CX,20
+    INT 10H
+    H14:
+    INC CX
+    INT 10H
+    CMP CX,220
+    JB H14
+    
+    MOV CX,240
+    INT 10H
+    H15:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H15
+    
+    MOV DX,270
+    MOV CX,0
+    INT 10H
+    H16:
+    INC CX
+    INT 10H
+    CMP CX,60
+    JB H16
+    
+    MOV CX,80
+    INT 10H
+    H17:
+    INC CX
+    INT 10H
+    CMP CX,280
+    JB H17
+    
+    MOV DX,310
+    MOV CX,20
+    INT 10H
+    H18:
+    INC CX
+    INT 10H
+    CMP CX,60
+    JB H18
+    
+    MOV CX,80
+    INT 10H
+    H19:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H19
+    
+    MOV DX,350
+    MOV CX,0
+    INT 10H
+    H20:
+    INC CX
+    INT 10H
+    CMP CX,260
+    JB H20
+    
+    MOV CX,280
+    INT 10H
+    H21:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB H21
+    
+    ;VERTICAL LINES
+    MOV DX,50
+    MOV CX,0
+    INT 10H
+    V1:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB V1
+    
+    MOV DX,50
+    MOV CX,300
+    INT 10H
+    V2:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB V2
+    
+    MOV DX,80
+    MOV CX,120
+    INT 10H
+    V3:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB V3
+    
+    MOV DX,110
+    MOV CX,220
+    INT 10H
+    V4:
+    INC DX
+    INT 10H
+    CMP DX,140
+    JB V4
+    
+    MOV DX,140
+    MOV CX,180
+    INT 10H
+    V5:
+    INC DX
+    INT 10H
+    CMP DX,170
+    JB V5
+    
+    MOV DX,200
+    MOV CX,120
+    INT 10H
+    V6:
+    INC DX
+    INT 10H
+    CMP DX,230
+    JB V6
+    
+    MOV DX,230
+    MOV CX,180
+    INT 10H
+    V7:
+    INC DX
+    INT 10H
+    CMP DX,270
+    JB V7
+    
+    MOV DX,270
+    MOV CX,260
+    INT 10H
+    V8:
+    INC DX
+    INT 10H
+    CMP DX,310
+    JB V8
+    
+    MOV DX,310
+    MOV CX,20
+    INT 10H
+    V9:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB V9
+    RET
+CREATE_MAZE2 ENDP
+;---------------------------------------------------------
+
+CREATE_MAZE3 PROC
+    MOV AL,0DH ;MAGENTA
+    MOV AH,0CH ;WRITE PIXEL
+    
+    MOV DX,50
+    MOV CX,0 
+    ;INT 10H
+    L2V1:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L2V1
+    
+    MOV DX,50
+    MOV CX,300
+    L2V3:
+    INC DX
+    INT 10H
+    CMP DX,290
+    JB L2V3
+    
+    MOV DX,310
+    MOV CX,300
+    L2V4:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L2V4  
+    
+    MOV DX,50
+    MOV CX,0
+    L2H1:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB L2H1
+    
+    MOV DX,350
+    MOV CX,0 
+    L2H2:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB L2H2
+    
+    MOV DX,50
+    MOV CX,80
+    L2V5:
+    INC DX
+    INT 10H
+    CMP DX,90
+    JB L2V5
+    
+    MOV DX,90
+    MOV CX,80
+    L2H3:
+    DEC CX
+    INT 10H
+    CMP CX,20
+    JA L2H3
+    
+    MOV DX,90
+    MOV CX,20
+    L2V6:
+    DEC DX
+    INT 10H 
+    CMP DX,70
+    JA L2V6
+    
+    MOV DX,70
+    MOV CX,20
+    L2H4:
+    INC CX
+    INT 10H
+    CMP CX,40  
+    JB L2H4 
+    
+    MOV DX,70
+    MOV CX,60
+    L2H5:
+    INC CX
+    INT 10H
+    CMP CX,80
+    JB L2H5
+    
+    MOV DX,50
+    MOV CX,140
+    L2V7:
+    INC DX
+    INT 10H
+    CMP DX,70
+    JB L2V7  
+    
+    MOV DX,70
+    MOV CX,140
+    L2H6:
+    INC CX
+    INT 10H
+    CMP CX,160
+    JB L2H6
+    
+    MOV DX,50
+    MOV CX,240
+    L2V8: 
+    INC DX
+    INT 10H  
+    CMP DX,70
+    JB L2V8
+    
+    MOV DX,70
+    MOV CX,240
+    L2H7:
+    DEC CX
+    INT 10H
+    CMP CX,200
+    JA L2H7
+    
+    MOV DX,70
+    MOV CX,200
+    L2V9:
+    INC DX
+    INT 10H
+    CMP DX,90
+    JB L2V9
+    
+    MOV DX,90
+    MOV CX,200
+    L2H8:
+    INC CX
+    INT 10H
+    CMP CX,280
+    JB L2H8
+    
+    MOV DX,90
+    MOV CX,280
+    L2V10:
+    DEC DX
+    INT 10H
+    CMP DX,70
+    JA L2V10
+    
+    MOV DX,70
+    MOV CX,280
+    L2H9:
+    DEC CX
+    INT 10H 
+    CMP CX,260
+    JA L2H9
+    
+    MOV DX,70
+    MOV CX,100
+    L2V11:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L2V11
+    
+    MOV DX,110
+    MOV CX,100
+    L2H10:
+    DEC CX
+    INT 10H
+    CMP CX,80
+    JA L2H10
+    
+    MOV DX,70
+    MOV CX,100
+    L2H11:
+    INC CX
+    INT 10H
+    CMP CX,120
+    JB L2H11
+    
+    MOV DX,90
+    MOV CX,100
+    L2H12:
+    INC CX
+    INT 10H
+    CMP CX,140
+    JB L2H12
+    
+    MOV DX,90
+    MOV CX,140
+    L2V12:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L2V12
+    
+    MOV DX,110
+    MOV CX,140
+    L2H13:
+    DEC CX
+    INT 10H
+    CMP CX,120
+    JA L2H13
+    
+    MOV DX,110
+    MOV CX,120
+    L2V13:
+    INC DX
+    INT 10H
+    CMP DX,130
+    JB L2V13
+    
+    MOV DX,90
+    MOV CX,160
+    L2V14:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L2V14
+    
+    MOV DX,110
+    MOV CX,160
+    L2H14:
+    INC CX
+    INT 10H
+    CMP CX,240
+    JB L2H14
+    
+    MOV DX,110
+    MOV CX,200
+    L2V15:
+    INC DX
+    INT 10H 
+    CMP DX,130
+    JB L2V15
+    
+    MOV DX,130
+    MOV CX,200
+    L2H15:
+    DEC CX
+    INT 10H
+    CMP CX,80
+    JA L2H15
+    
+    MOV DX,130
+    MOV CX,80
+    L2V16:
+    INC DX
+    INT 10H
+    CMP DX,230
+    JB L2V16 
+    
+    MOV DX,210
+    MOV CX,80
+    L2H16:
+    DEC CX
+    INT 10H
+    CMP CX,60
+    JA L2H16
+    
+    MOV DX,130
+    MOV CX,20
+    L2V17:
+    INC DX
+    INT 10H
+    CMP DX,210
+    JB L2V17
+    
+    MOV DX,210
+    MOV CX,20
+    L2H17:
+    INC CX
+    INT 10H
+    CMP CX,40
+    JB L2H17
+    
+    MOV DX,210
+    MOV CX,40
+    L2V18:
+    DEC DX
+    INT 10H
+    CMP DX,190
+    JA L2V18
+    
+    MOV DX,170
+    MOV CX,0
+    L2H18:
+    INC CX
+    INT 10H
+    CMP CX,20
+    JB L2H18
+    
+    MOV DX,90
+    MOV CX,60
+    L2V19:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L2V19
+    
+    MOV DX,110
+    MOV CX,60
+    L2H19:
+    DEC CX
+    INT 10H
+    CMP CX,40
+    JA L2H19
+    
+    MOV DX,110
+    MOV CX,40
+    L2V20:
+    INC DX
+    INT 10H
+    CMP DX,170
+    JB L2V20
+    
+    MOV DX,170
+    MOV CX,40
+    L2H20:
+    INC CX
+    INT 10H
+    CMP CX,60
+    JB L2H20
+    
+    MOV DX,130
+    MOV CX,60
+    L2V21:
+    INC DX
+    INT 10H
+    CMP DX,190
+    JB L2V21 
+    
+    MOV DX,250
+    MOV CX,0
+    L2H21:
+    INC CX
+    INT 10H
+    CMP CX,20
+    JB L2H21
+    
+    MOV DX,250
+    MOV CX,20
+    L2V22:
+    DEC DX
+    INT 10H
+    CMP DX,230
+    JA L2V22
+    
+    MOV DX,230
+    MOV CX,20
+    L2H22:
+    INC CX
+    INT 10H
+    CMP CX,120
+    JB L2H22
+    
+    MOV DX,230
+    MOV CX,120
+    L2V23:
+    INC DX
+    INT 10H
+    CMP DX,250
+    JB L2V23 
+    
+    MOV DX,230
+    MOV CX,40  
+    L2V24:
+    INC DX
+    INT 10H
+    CMP DX,270
+    JB L2V24
+    
+    MOV DX,270
+    MOV CX,20
+    L2V25:
+    INC DX
+    INT 10H
+    CMP DX,290
+    JB L2V25
+    
+    MOV DX,290
+    MOV CX,20
+    L2H23:
+    INC CX
+    INT 10H
+    CMP CX,60
+    JB L2H23
+    
+    MOV DX,290
+    MOV CX,60
+    L2V26:
+    DEC DX
+    INT 10H
+    CMP DX,250
+    JA L2V26
+    
+    MOV DX,250
+    MOV CX,60
+    L2H24:
+    INC CX
+    INT 10H
+    CMP CX,100
+    JB L2H24
+    
+    MOV DX,250
+    MOV CX,100
+    L2V27:
+    INC DX
+    INT 10H
+    CMP DX,270
+    JB L2V27 
+    
+    MOV DX,350
+    MOV CX,100
+    L2V28:
+    DEC DX
+    INT 10H
+    CMP DX,330
+    JA L2V28
+    
+    MOV DX,330
+    MOV CX,100
+    L2H25:
+    DEC CX
+    INT 10H
+    CMP CX,80
+    JA L2H25
+    
+    MOV DX,330
+    MOV CX,80
+    L2V29:
+    DEC DX
+    INT 10H
+    CMP DX,310
+    JA L2V29 
+    
+    MOV DX,270
+    MOV CX,100
+    L2H26:
+    INC CX
+    INT 10H
+    CMP CX,140
+    JB L2H26
+    
+    MOV DX,250
+    MOV CX,140
+    L2V30:
+    INC DX
+    INT 10H
+    CMP DX,330
+    JB L2V30
+    
+    MOV DX,330
+    MOV CX,120
+    L2H27:
+    INC CX
+    INT 10H
+    CMP CX,160
+    JB L2H27
+           
+    MOV DX,330
+    MOV CX,160
+    L2V31:
+    DEC DX
+    INT 10H
+    CMP DX,230
+    JA L2V31
+    
+    MOV DX,230
+    MOV CX,140
+    L2H28:
+    INC CX
+    INT 10H
+    CMP CX,200
+    JB L2H28
+    
+    MOV DX,270
+    MOV CX,160
+    L2H29:
+    INC CX
+    INT 10H
+    CMP CX,200
+    JB L2H29
+    
+    MOV DX,230
+    MOV CX,140
+    L2V32:
+    DEC DX
+    INT 10H
+    CMP DX,190
+    JA L2V32
+    
+    MOV DX,190
+    MOV CX,140
+    L2H30:
+    INC CX
+    INT 10H
+    CMP CX,160
+    JB L2H30
+    
+    MOV DX,190
+    MOV CX,160
+    L2V33:
+    DEC DX
+    INT 10H
+    CMP DX,170
+    JA L2V33
+    
+    MOV DX,170
+    MOV CX,140
+    L2H31:
+    INC CX
+    INT 10H
+    CMP CX,180
+    JB L2H31
+    
+    MOV DX,210
+    MOV CX,140
+    L2H32:
+    DEC CX
+    INT 10H
+    CMP CX,100
+    JA L2H32
+    
+    MOV DX,210
+    MOV CX,100
+    L2V34:
+    DEC DX
+    INT 10H
+    CMP DX,150
+    JA L2V34
+    
+    MOV DX,150
+    MOV CX,100
+    L2H33:
+    INC CX
+    INT 10H
+    CMP CX,140
+    JB L2H33
+    
+    MOV DX,150
+    MOV CX,140
+    L2V35:
+    INC DX
+    INT 10H
+    CMP DX,130
+    JB L2V35
+    
+    MOV DX,130
+    MOV CX,140
+    L2H34:
+    DEC CX
+    INT 10H
+    CMP CX,120
+    JA L2H34
+    
+    MOV DX,90
+    MOV CX,260
+    L2V36:
+    INC DX
+    INT 10H
+    CMP DX,130
+    JB L2V36
+    
+    MOV DX,130
+    MOV CX,260
+    L2H35:
+    DEC CX
+    INT 10H
+    CMP CX,220
+    JA L2H35
+    
+    MOV DX,130
+    MOV CX,220
+    L2V37:
+    INC DX
+    INT 10H
+    CMP DX,150
+    JB L2V37
+    
+    MOV DX,130
+    MOV CX,220
+    L2V38:
+    INC DX
+    INT 10H
+    CMP DX,170
+    JB L2V38
+    
+    MOV DX,170
+    MOV CX,220
+    L2H36:
+    DEC CX
+    INT 10H
+    CMP CX,180
+    JA L2H36
+    
+    MOV DX,330
+    MOV CX,200
+    L2H37:
+    INC CX
+    INT 10H
+    CMP CX,280
+    JB L2H37
+    
+    MOV DX,330
+    MOV CX,260
+    L2H38:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB L2H38
+    
+    MOV DX,330
+    MOV CX,240
+    L2V39:
+    DEC DX
+    INT 10H
+    CMP DX,210
+    JA L2V39   
+    
+    MOV DX,210
+    MOV CX,240
+    L2H39:
+    INC CX
+    INT 10H
+    CMP CX,280
+    JB L2H39 
+    
+    MOV DX,210
+    MOV CX,280
+    L2V40:
+    INC DX
+    INT 10H
+    CMP DX,270
+    JB L2V40 
+    
+    MOV DX,150
+    MOV CX,300
+    L2H40:
+    DEC CX
+    INT 10H
+    CMP CX,260
+    JA L2H40
+    
+    MOV DX,150 
+    MOV CX,260
+    L2V41:
+    INC DX
+    INT 10H
+    CMP DX,190
+    JB L2V41
+    
+    MOV DX,310
+    MOV CX,240
+    L2H41:
+    DEC CX
+    INT 10H
+    CMP CX,200
+    JA L2H41
+    RET
+CREATE_MAZE3 ENDP
+
 ;-----------------------------------------------------------------------
     DRAW_CHAR PROC
     MOV CX,CHAR_X
@@ -336,7 +1044,7 @@ INPUT PROC
         JMP INP
     RIGHT:
         MOV CX,CHAR_X;COLUMN NUMBER
-        ADD CX,16
+        ADD CX,LV3_RIGHT_BOUND
         MOV DX,CHAR_Y
         ADD DX,4
         call check 
@@ -352,7 +1060,7 @@ INPUT PROC
     UP: 
         MOV CX,CHAR_X
         MOV DX,CHAR_Y
-        SUB DX,9
+        SUB DX,LV3_UP_BOUND
         call check 
         cmp bool,1  
         je exit 
@@ -363,7 +1071,7 @@ INPUT PROC
         JMP INP
     LEFT:
         MOV CX,CHAR_X
-        SUB CX,4
+        SUB CX,LV3_LEFT_BOUND
         MOV DX,CHAR_Y
         ADD DX,4
         call check 
@@ -382,7 +1090,7 @@ INPUT PROC
         MOV CX,CHAR_X
         ADD CX,5
         MOV DX,CHAR_Y
-        ADD DX,11
+        ADD DX,LV3_DOWN_BOUND
         call check 
         cmp bool,1  
         je exit
@@ -392,9 +1100,28 @@ INPUT PROC
         CALL DRAW_CHAR
         JMP INP
     ESCAPE:
-        MOV AH,00H;SET VIDEO MODE
-        MOV AL,12H;RESOLUTION
+        CALL CLEAR_SCR
+        MOV DL,25
+        MOV DH,5
+        MOV AH,02
         INT 10H
+        LEA DX,QUIT_MSG
+        MOV AH,09H
+        INT 21H
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,CONFIRMATION
+        MOV AH,09H
+        INT 21H
+        CHECKAGAIN:
+        MOV AH,07H
+        INT 21H
+        CMP AL,79H
+        JE LV1COMPLETE
+        JMP CHECKAGAIN
+        RET
     exit:
         mov ah,02h
         mov dl,07h
@@ -402,9 +1129,33 @@ INPUT PROC
         mov bool,0 
         jmp inp
     LV1COMPLETE:
-        MOV AH,00H;SET VIDEO MODE
-        MOV AL,12H;RESOLUTION
+        CALL CLEAR_SCR
+        MOV DL,25
+        MOV DH,5
+        MOV AH,02
         INT 10H
+        LEA DX,LVL_UP_MSG
+        MOV AH,09H
+        INT 21H
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,CONFIRMATION
+        MOV AH,09H
+        INT 21H
+        CHECKAGAINLVL:
+        MOV AH,07H
+        INT 21H
+        CMP AL,79H
+        JE COMPLETE
+        JMP CHECKAGAINLVL
+        COMPLETE:
+            CALL CLEAR_SCR
+            MOV CHAR_X,5
+            MOV CHAR_Y,54
+            CALL LEVEL3
+        RET
 INPUT ENDP
 
 ;-------------------------------------------------

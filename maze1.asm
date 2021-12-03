@@ -12,7 +12,7 @@ data segment
     MIN_SCORE DB "MIN STEP:","$"
     LV DB "LV.","$"
     QUIT_MSG DW "DO YOU WANT TO QUIT?","$"
-    CONFIRMATION DB "(PRESS Y TO CONFIRM)","$"
+    CONFIRMATION DB "(PRESS y TO CONFIRM)","$"
     LVL_UP_MSG DB "DO YOU WANT TO MOVE TO NEXT LEVEL?","$"
     bool db 0
     LV2_DOWN_BOUND DW 16
@@ -23,6 +23,7 @@ data segment
     LV3_UP_BOUND DW 4
     LV3_LEFT_BOUND DW 5
     LV3_RIGHT_BOUND DW 15
+    CURR_LV DB 1
 ends
 
 stack segment
@@ -31,8 +32,8 @@ ends
 
 code segment
 start:
-   MAIN PROC
-; set segment registers:
+MAIN PROC
+    ; set segment registers:
     mov ax, data
     mov ds, ax
     mov es, ax
@@ -41,7 +42,7 @@ start:
     MOV AH,00H;SET VIDEO MODE
     MOV AL,12H;RESOLUTION
     INT 10H
-    CALL LEVEL2
+    CALL LEVEL1
     ret     
 MAIN ENDP
 ;------------------------------------------------------
@@ -61,13 +62,25 @@ CLEAR_SCR PROC
     CMP DX,500
     JNG CLEAR
     RET
-CLEAR_SCR ENDP    
+CLEAR_SCR ENDP
+
+;----------------------------------------------------
+
+LEVEL1 PROC
+    CALL SHOW_SCORE
+    CALL SHOW_MINSCORE1
+    CALL SHOW_LEVEL
+    CALL CREATE_MAZE1
+    CALL DRAW_CHAR
+    CALL INPUT
+    RET
+LEVEL1 ENDP
 
 ;-----------------------------------------------------
 
 LEVEL3 PROC
     CALL SHOW_SCORE
-    CALL SHOW_MINSCORE
+    CALL SHOW_MINSCORE3
     CALL SHOW_LEVEL
     CALL CREATE_MAZE3
     CALL DRAW_CHAR
@@ -79,13 +92,805 @@ LEVEL3 ENDP
 
 LEVEL2 PROC
     CALL SHOW_SCORE
-    CALL SHOW_MINSCORE
+    CALL SHOW_MINSCORE2
     CALL SHOW_LEVEL
     CALL CREATE_MAZE2
     CALL DRAW_CHAR
     CALL INPUT
     RET
 LEVEL2 ENDP
+
+;-----------------------------------------------------------------------
+DRAW_CHAR PROC
+    MOV CX,CHAR_X
+    MOV DX,CHAR_Y
+    MOV AH,0CH
+    MOV AL,0FH
+    DRAW:
+    INT 10H
+    INC CX
+    MOV BX,CX
+    SUB BX,CHAR_X
+    CMP BX,CHAR_SIZE;(CX-char_x<char_size)
+    JNG DRAW
+    MOV CX,CHAR_X
+    INC DX
+    MOV BX,DX
+    SUB BX,CHAR_Y
+    CMP BX,CHAR_SIZE
+    JNG DRAW
+    RET    
+DRAW_CHAR ENDP
+;--------------------------------------------------
+INPUT PROC
+    INP:
+        MOV AH,00H
+        INT 16H ;AH CONTAINS SCAN CODE AND AL CONTAINS ASCII
+        CMP AH,48H ;IF ARROW UP IS PRESSSED
+        JE UP
+        CMP AH,50H ;DOWN KEY
+        JE DOWN
+        CMP AH,4BH ;LEFT
+        JE LEFT
+        CMP AH,4DH ;RIGHT
+        JE RIGHT
+        CMP AL,1BH;esc
+        JE ESCAPE
+        JMP INP
+    RIGHT:
+        MOV CX,CHAR_X;COLUMN NUMBER
+        ADD CX,LV3_RIGHT_BOUND
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
+        CALL CALC_SCORE
+        CALL DELETE_CHAR
+        MOV CX,CHAR_X
+        ADD CX,10
+        MOV CHAR_X,CX
+        CALL DRAW_CHAR
+        JMP INP
+    UP: 
+        MOV CX,CHAR_X
+        MOV DX,CHAR_Y
+        SUB DX,LV3_UP_BOUND
+        call check 
+        cmp bool,1  
+        je exit 
+        CALL CALC_SCORE
+        CALL DELETE_CHAR
+        SUB CHAR_Y,10
+        CALL DRAW_CHAR
+        JMP INP
+    LEFT:
+        MOV CX,CHAR_X
+        SUB CX,LV3_LEFT_BOUND
+        MOV DX,CHAR_Y
+        ADD DX,4
+        call check 
+        cmp bool,1  
+        je exit
+        CALL CALC_SCORE
+        CALL DELETE_CHAR
+        SUB CHAR_X,10
+        CALL DRAW_CHAR
+        JMP INP
+    DOWN:
+        MOV CX,CHAR_X
+        ADD CX,5
+        MOV DX,CHAR_Y
+        ADD DX,LV3_DOWN_BOUND
+        call check 
+        cmp bool,1  
+        je exit
+        MOV DX,CHAR_Y
+        ADD DX,10
+        CMP DX,350
+        JA LVCOMPLETE
+        CALL CALC_SCORE
+        CALL DELETE_CHAR
+        ADD CHAR_Y,10
+        CALL DRAW_CHAR
+        JMP INP
+    ESCAPE:
+        CALL CLEAR_SCR
+        MOV DL,25
+        MOV DH,5
+        MOV AH,02
+        INT 10H
+        LEA DX,QUIT_MSG
+        MOV AH,09H
+        INT 21H
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,CONFIRMATION
+        MOV AH,09H
+        INT 21H
+        CHECKAGAIN:
+        MOV AH,07H
+        INT 21H
+        CMP AL,79H
+        JE ENDGAME
+        JMP CHECKAGAIN
+        RET
+    exit:
+        mov ah,02h
+        mov dl,07h
+        int 21h 
+        mov bool,0 
+        jmp inp
+    LVCOMPLETE:
+        CALL CLEAR_SCR
+        MOV DL,25
+        MOV DH,5
+        MOV AH,02
+        INT 10H
+        LEA DX,LVL_UP_MSG
+        MOV AH,09H
+        INT 21H
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,CONFIRMATION
+        MOV AH,09H
+        INT 21H
+        CHECKAGAINLVL:
+        MOV AH,07H
+        INT 21H
+        CMP AL,79H
+        JE COMPLETE
+        JMP CHECKAGAINLVL
+        COMPLETE:
+            CALL CLEAR_SCR
+            MOV CHAR_X,5
+            MOV CHAR_Y,54
+            CMP CURR_LV,1
+            JE LV2
+            CMP CURR_LV,2
+            JE LV3
+            CMP CURR_LV,3
+            JE ENDGAME
+        LV2:
+            MOV CURR_LV,2
+            MOV SCORE_0,'0'
+            MOV SCORE_1,'0'
+            MOV SCORE_2,'0'
+            CALL LEVEL2
+            RET
+        LV3:
+            MOV CURR_LV,3
+            MOV SCORE_0,'0'
+            MOV SCORE_1,'0'
+            MOV SCORE_2,'0'
+            CALL LEVEL3
+            RET
+        ENDGAME:
+            MOV CURR_LV,1
+            CALL ENDGAMEP
+            RET
+        RET
+INPUT ENDP
+;--------------------------------------------------
+
+ENDGAMEP PROC
+    PUSH AX
+    POP AX
+ENDGAMEP ENDP
+
+;-------------------------------------------------
+DELETE_CHAR PROC
+    MOV CX,CHAR_X
+    MOV DX,CHAR_Y
+    MOV AH,0CH
+    MOV AL,00H
+    DELETE:
+    INT 10H
+    INC CX
+    MOV BX,CX
+    SUB BX,CHAR_X
+    CMP BX,CHAR_SIZE
+    JNG DRAW
+    MOV CX,CHAR_X
+    INC DX
+    MOV BX,DX
+    SUB BX,CHAR_Y
+    CMP BX,CHAR_SIZE
+    JNG DELETE
+    RET
+DELETE_CHAR ENDP
+
+;--------------------------------------------------------------------
+
+SHOW_SCORE PROC
+    MOV DL,1;column
+    MOV DH,1;row
+    MOV AH,02
+    INT 10H;setting cursor position
+    LEA DX,STRING 
+    
+    ;output the string
+    ;loaded in dx 
+    MOV AH,09H
+    INT 21H
+    MOV DL,8
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    mov  al, SCORE_0
+    mov  bl, 0Ch  ;Color is red
+    mov  bh, 0    ;Display page
+    mov  ah, 0Eh  ;Teletype
+    int  10h
+    mov al,SCORE_1
+    int 10h
+    MOV AL,SCORE_2
+    INT 10H
+    RET
+SHOW_SCORE ENDP
+;--------------------------------------------------------
+SHOW_MINSCORE1 PROC
+    MOV DL,25
+    MOV DH,1
+    MOV AH,02
+    INT 10H;setting cursor position
+    LEA DX,MIN_SCORE
+    MOV AH,09H
+    INT 21H
+    MOV DL,35
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH
+    MOV AH,0EH
+    MOV AL,'0'
+    INT 10H
+    MOV AL,'8'
+    INT 10H
+    MOV AL,'2'
+    INT 10H
+    RET
+SHOW_MINSCORE1 ENDP
+;-----------------------------------------------------
+SHOW_MINSCORE2 PROC
+    MOV DL,25
+    MOV DH,1
+    MOV AH,02
+    INT 10H;setting cursor position
+    LEA DX,MIN_SCORE
+    MOV AH,09H
+    INT 21H
+    MOV DL,35
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH
+    MOV AH,0EH
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'1'
+    INT 10H
+    RET
+SHOW_MINSCORE2 ENDP
+;--------------------------------------------------------
+SHOW_MINSCORE3 PROC
+    MOV DL,25
+    MOV DH,1
+    MOV AH,02
+    INT 10H;setting cursor position
+    LEA DX,MIN_SCORE
+    MOV AH,09H
+    INT 21H
+    MOV DL,35
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH
+    MOV AH,0EH
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'1'
+    INT 10H
+    MOV AL,'0'
+    INT 10H
+    RET
+SHOW_MINSCORE3 ENDP
+;--------------------------------------------------------
+SHOW_LEVEL PROC
+    MOV DL,15
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    LEA DX,LV
+    MOV AH,09
+    INT 21H
+    MOV DL,20
+    MOV DH,1
+    MOV AH,02
+    INT 10H
+    MOV BL,0CH;RED
+    MOV AH,0EH
+    CMP CURR_LV,1
+    JE LV1CHAR
+    CMP CURR_LV,2
+    JE LV2CHAR
+    CMP CURR_LV,3
+    JE LV3CHAR
+    LV1CHAR:
+    MOV AL,'1'
+    JMP PRINT
+    LV2CHAR:
+    MOV AL,'2'
+    JMP PRINT
+    LV3CHAR:
+    MOV AL,'3'
+    PRINT:
+    INT 10H
+    RET
+SHOW_LEVEL ENDP
+;--------------------------------------------------------
+CALC_SCORE PROC
+    CMP SCORE_2,'9'
+    JE TENTH_PLACE
+    INC SCORE_2
+    JMP LAST
+    TENTH_PLACE:
+        CMP SCORE_1,'9'
+        JE HUNDREDTH_PLACE
+        INC SCORE_1
+        MOV SCORE_2,'0'
+        JMP LAST
+    HUNDREDTH_PLACE:
+        INC SCORE_0
+        MOV SCORE_1,'0'
+        MOV SCORE_2,'0'
+        JMP LAST
+   LAST:
+   CALL SHOW_SCORE
+   RET
+CALC_SCORE ENDP
+;---------------------------------------------------------
+check proc 
+    MOV AH,0DH 
+    MOV BH,0 
+    INT 10H;reads the pixel  
+    cmp al,0DH;al contains the colour 
+    jne ex 
+    mov bool,1
+    ex:
+    ret 
+check endp
+;------------------------------------------------------
+
+CREATE_MAZE1 PROC
+    MOV AL,0DH ;MAGENTA
+    MOV AH,0CH ;WRITE PIXEL
+    
+    MOV DX,50
+    MOV CX,0 
+    ;INT 10H
+    L1V1:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L1V1
+    
+    MOV DX,50
+    MOV CX,300
+    L1V2:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L1V2
+    
+    MOV DX,50
+    MOV CX,0
+    L1H1:
+    INC CX 
+    INT 10H
+    CMP CX,300
+    JB L1H1
+    
+    
+    MOV DX,350
+    MOV CX,0
+    L1H3:
+    INC CX 
+    INT 10H
+    CMP CX,150
+    JB L1H3
+    
+    MOV DX,350
+    MOV CX,180
+    L1H4:
+    INC CX 
+    INT 10H
+    CMP CX,300
+    JB L1H4
+    
+    MOV DX,110
+    MOV CX,0
+    L1H5:
+    INC CX
+    INT 10H
+    CMP CX,30
+    JB L1H5
+    
+    MOV DX,260
+    MOV CX,0
+    L1H6:
+    INC CX 
+    INT 10H
+    CMP CX,60
+    JB L1H6
+    
+    MOV DX,320
+    MOV CX,0
+    L1H7:
+    INC CX
+    INT 10H
+    CMP CX,30
+    JB L1H7
+    
+    MOV DX,320
+    MOV CX,30
+    L1V3:
+    DEC DX
+    INT 10H
+    CMP DX,290
+    JA L1V3
+    
+    MOV DX,170
+    MOV CX,30
+    L1V4:
+    INC DX 
+    INT 10H
+    CMP DX,230
+    JB L1V4
+    
+    MOV DX,80
+    MOV CX,30
+    L1H8:
+    INC CX 
+    INT 10H
+    CMP CX,60
+    JB L1H8
+    
+    MOV DX,80
+    MOV CX,60
+    L1V5:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L1V5
+    
+    MOV DX,110
+    MOV CX,60
+    L1H9:
+    INC CX
+    INT 10H
+    CMP CX,210
+    JB L1H9
+    
+    MOV DX,140
+    MOV CX,30
+    L1H10:
+    INC CX
+    INT 10H
+    CMP CX,90
+    JB L1H10
+    
+    MOV DX,200
+    MOV CX,30
+    L1H11:
+    INC CX
+    INT 10H
+    CMP CX,90
+    JB L1H11
+    
+    MOV DX,230
+    MOV CX,30
+    L1H12:
+    INC CX
+    INT 10H
+    CMP CX,120
+    JB L1H12
+    
+    MOV DX,350
+    MOV CX,60
+    L1V6:
+    DEC DX
+    INT 10H
+    CMP DX,320
+    JA L1V6
+    
+    MOV DX,80
+    MOV CX,90
+    L1V7:
+    INC DX 
+    INT 10H
+    CMP DX,170
+    JB L1V7
+    
+    MOV DX,170
+    MOV CX,60
+    L1H13:
+    INC CX
+    INT 10H
+    CMP CX,120
+    JB L1H13
+    
+    MOV DX,170
+    MOV CX,120
+    L1V8:
+    INC DX
+    INT 10H
+    CMP DX,230
+    JB L1V8
+    
+    MOV DX,230
+    MOV CX,90
+    L1V9:
+    INC DX
+    INT 10H 
+    CMP DX,260
+    JB L1V9
+    
+    MOV DX,290
+    MOV CX,60
+    L1H14:
+    INC CX
+    INT 10H
+    CMP CX,120
+    JB L1H14
+    
+    MOV DX,290
+    MOV CX,90
+    L1V10:
+    INC DX
+    INT 10H
+    CMP DX,320
+    JB L1V10
+    
+    MOV DX,50
+    MOV CX,120
+    L1V11:
+    INC DX
+    INT 10H
+    CMP DX,80
+    JB L1V11
+    
+    MOV DX,110
+    MOV CX,120
+    L1V12:
+    INC DX
+    INT 10H
+    CMP DX,140
+    JB L1V12
+    
+    MOV DX,140
+    MOV CX,120
+    L1H15:
+    INC CX
+    INT 10H
+    CMP CX,150
+    JB L1H15
+    
+    MOV DX,140
+    MOV CX,150
+    L1V13:
+    INC DX
+    INT 10H
+    CMP DX,260
+    JB L1V13
+    
+    MOV DX,260
+    MOV CX,150
+    L1H16:
+    DEC CX
+    INT 10H
+    CMP CX,120
+    JA L1H16 
+    
+    MOV DX,260
+    MOV CX,120
+    L1V14:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L1V14
+    
+    MOV DX,80
+    MOV CX,150
+    L1V15:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L1V15
+    
+    MOV DX,80
+    MOV CX,150
+    L1H17:
+    INC CX
+    INT 10H
+    CMP CX,180
+    JB L1H17
+    
+    MOV DX,80
+    MOV CX,210
+    L1V16:
+    INC DX
+    INT 10H
+    CMP DX,110  
+    JB L1V16
+    
+    MOV DX,110
+    MOV CX,180
+    L1V17:
+    INC DX
+    INT 10H
+    CMP DX,170
+    JB L1V17
+    
+    MOV DX,200
+    MOV CX,150
+    L1H18:
+    INC CX
+    INT 10H
+    CMP CX,210
+    JB L1H18
+    
+    MOV DX,140
+    MOV CX,180
+    L1H19:
+    INC CX
+    INT 10H
+    CMP CX,240
+    JB L1H19
+    
+    MOV DX,80
+    MOV CX,240 
+    L1H20:
+    INC CX
+    INT 10H 
+    CMP CX,270
+    JB L1H20
+    
+    MOV DX,80
+    MOV CX,270
+    L1V18:
+    INC DX
+    INT 10H
+    CMP DX,110
+    JB L1V18
+    
+    MOV DX,110
+    MOV CX,270
+    L1H21:
+    DEC CX
+    INT 10H
+    CMP CX,240
+    JA L1H21
+    
+    MOV DX,110
+    MOV CX,240
+    L1V19:
+    INC DX
+    INT 10H
+    CMP DX,230
+    JB L1V19
+    
+    MOV DX,170
+    MOV CX,210
+    L1H22:
+    INC CX
+    INT 10H
+    CMP CX,240
+    JB L1H22
+    
+    MOV DX,200
+    MOV CX,240
+    L1H23:
+    INC CX
+    INT 10H
+    CMP CX,270
+    JB L1H23
+    
+    MOV DX,200
+    MOV CX,270
+    L1V20:
+    INC DX
+    INT 10H
+    CMP DX,320
+    JB L1V20
+    
+    MOV DX,320
+    MOV CX,270
+    L1H24:
+    DEC CX
+    INT 10H
+    CMP CX,240
+    JA L1H24
+    
+    MOV DX,350
+    MOV CX,180
+    L1V21:
+    DEC DX
+    INT 10H
+    CMP DX,320
+    JA L1V21
+    
+    MOV DX,320
+    MOV CX,180
+    L1H25:
+    DEC CX
+    INT 10H
+    CMP CX,150
+    JB L1H25
+    
+    MOV DX,320
+    MOV CX,150
+    L1V22:
+    DEC DX
+    INT 10H
+    CMP DX,290
+    JA L1V22
+    
+    MOV DX,290
+    MOV CX,150
+    L1H26:
+    INC CX
+    INT 10H
+    CMP CX,180
+    JB L1H26
+    
+    MOV DX,290
+    MOV CX,180
+    L1V23:
+    DEC DX
+    INT 10H
+    CMP DX,230
+    JA L1V23
+    
+    MOV DX,230
+    MOV CX,180
+    L1H27:
+    INC CX
+    INT 10H
+    CMP CX,210
+    JB L1H27
+    
+    MOV DX,230
+    MOV CX,210
+    L1V24:
+    INC DX
+    INT 10H
+    CMP DX,260
+    JB L1V24
+    
+    MOV DX,260
+    MOV CX,210
+    L1H28:
+    INC CX
+    INT 10H
+    CMP CX,240
+    JB L1H28
+    
+    MOV DX,290
+    MOV CX,210
+    L1V25:
+    INC DX
+    INT 10H
+    CMP DX,350
+    JB L1V25
+    RET
+CREATE_MAZE1 ENDP
 
 ;------------------------------------------------------
    
@@ -347,6 +1152,7 @@ CREATE_MAZE2 PROC
     JB V9
     RET
 CREATE_MAZE2 ENDP
+
 ;---------------------------------------------------------
 
 CREATE_MAZE3 PROC
@@ -1003,285 +1809,6 @@ CREATE_MAZE3 PROC
     JA L2H41
     RET
 CREATE_MAZE3 ENDP
-
-;-----------------------------------------------------------------------
-    DRAW_CHAR PROC
-    MOV CX,CHAR_X
-    MOV DX,CHAR_Y
-    MOV AH,0CH
-    MOV AL,0FH
-    DRAW:
-    INT 10H
-    INC CX
-    MOV BX,CX
-    SUB BX,CHAR_X
-    CMP BX,CHAR_SIZE;(CX-char_x<char_size)
-    JNG DRAW
-    MOV CX,CHAR_X
-    INC DX
-    MOV BX,DX
-    SUB BX,CHAR_Y
-    CMP BX,CHAR_SIZE
-    JNG DRAW
-    RET    
-    DRAW_CHAR ENDP
-
-;--------------------------------------------------
-INPUT PROC
-    INP:
-        MOV AH,00H
-        INT 16H ;AH CONTAINS SCAN CODE AND AL CONTAINS ASCII
-        CMP AH,48H ;IF ARROW UP IS PRESSSED
-        JE UP
-        CMP AH,50H ;DOWN KEY
-        JE DOWN
-        CMP AH,4BH ;LEFT
-        JE LEFT
-        CMP AH,4DH ;RIGHT
-        JE RIGHT
-        CMP AL,1BH;esc
-        JE ESCAPE
-        JMP INP
-    RIGHT:
-        MOV CX,CHAR_X;COLUMN NUMBER
-        ADD CX,LV3_RIGHT_BOUND
-        MOV DX,CHAR_Y
-        ADD DX,4
-        call check 
-        cmp bool,1  
-        je exit
-        CALL CALC_SCORE
-        CALL DELETE_CHAR
-        MOV CX,CHAR_X
-        ADD CX,10
-        MOV CHAR_X,CX
-        CALL DRAW_CHAR
-        JMP INP
-    UP: 
-        MOV CX,CHAR_X
-        MOV DX,CHAR_Y
-        SUB DX,LV3_UP_BOUND
-        call check 
-        cmp bool,1  
-        je exit 
-        CALL CALC_SCORE
-        CALL DELETE_CHAR
-        SUB CHAR_Y,10
-        CALL DRAW_CHAR
-        JMP INP
-    LEFT:
-        MOV CX,CHAR_X
-        SUB CX,LV3_LEFT_BOUND
-        MOV DX,CHAR_Y
-        ADD DX,4
-        call check 
-        cmp bool,1  
-        je exit
-        CALL CALC_SCORE
-        CALL DELETE_CHAR
-        SUB CHAR_X,10
-        CALL DRAW_CHAR
-        JMP INP
-    DOWN:
-        MOV DX,CHAR_Y
-        ADD DX,20
-        CMP DX,350
-        JA LV1COMPLETE
-        MOV CX,CHAR_X
-        ADD CX,5
-        MOV DX,CHAR_Y
-        ADD DX,LV3_DOWN_BOUND
-        call check 
-        cmp bool,1  
-        je exit
-        CALL CALC_SCORE
-        CALL DELETE_CHAR
-        ADD CHAR_Y,10
-        CALL DRAW_CHAR
-        JMP INP
-    ESCAPE:
-        CALL CLEAR_SCR
-        MOV DL,25
-        MOV DH,5
-        MOV AH,02
-        INT 10H
-        LEA DX,QUIT_MSG
-        MOV AH,09H
-        INT 21H
-        MOV DL,25
-        MOV DH,6
-        MOV AH,02
-        INT 10H
-        LEA DX,CONFIRMATION
-        MOV AH,09H
-        INT 21H
-        CHECKAGAIN:
-        MOV AH,07H
-        INT 21H
-        CMP AL,79H
-        JE LV1COMPLETE
-        JMP CHECKAGAIN
-        RET
-    exit:
-        mov ah,02h
-        mov dl,07h
-        int 21h 
-        mov bool,0 
-        jmp inp
-    LV1COMPLETE:
-        CALL CLEAR_SCR
-        MOV DL,25
-        MOV DH,5
-        MOV AH,02
-        INT 10H
-        LEA DX,LVL_UP_MSG
-        MOV AH,09H
-        INT 21H
-        MOV DL,25
-        MOV DH,6
-        MOV AH,02
-        INT 10H
-        LEA DX,CONFIRMATION
-        MOV AH,09H
-        INT 21H
-        CHECKAGAINLVL:
-        MOV AH,07H
-        INT 21H
-        CMP AL,79H
-        JE COMPLETE
-        JMP CHECKAGAINLVL
-        COMPLETE:
-            CALL CLEAR_SCR
-            MOV CHAR_X,5
-            MOV CHAR_Y,54
-            CALL LEVEL3
-        RET
-INPUT ENDP
-
-;-------------------------------------------------
-DELETE_CHAR PROC
-    MOV CX,CHAR_X
-    MOV DX,CHAR_Y
-    MOV AH,0CH
-    MOV AL,00H
-    DELETE:
-    INT 10H
-    INC CX
-    MOV BX,CX
-    SUB BX,CHAR_X
-    CMP BX,CHAR_SIZE
-    JNG DRAW
-    MOV CX,CHAR_X
-    INC DX
-    MOV BX,DX
-    SUB BX,CHAR_Y
-    CMP BX,CHAR_SIZE
-    JNG DELETE
-    RET
-DELETE_CHAR ENDP
-
-;--------------------------------------------------------------------
-
-SHOW_SCORE PROC
-    MOV DL,1;column
-    MOV DH,1;row
-    MOV AH,02
-    INT 10H;setting cursor position
-LEA DX,STRING 
-  
- ;output the string
- ;loaded in dx 
- MOV AH,09H
- INT 21H
- MOV DL,8
- MOV DH,1
- MOV AH,02
- INT 10H
- mov  al, SCORE_0
-mov  bl, 0Ch  ;Color is red
-mov  bh, 0    ;Display page
-mov  ah, 0Eh  ;Teletype
-int  10h
-mov al,SCORE_1
-int 10h
-MOV AL,SCORE_2
-INT 10H
-    RET
-SHOW_SCORE ENDP
-
-SHOW_MINSCORE PROC
-    MOV DL,25
-    MOV DH,1
-    MOV AH,02
-    INT 10H;setting cursor position
-    LEA DX,MIN_SCORE
-    MOV AH,09H
-    INT 21H
-    MOV DL,35
-    MOV DH,1
-    MOV AH,02
-    INT 10H
-    MOV BL,0CH
-    MOV AH,0EH
-    MOV AL,'1'
-    INT 10H
-    MOV AL,'1'
-    INT 10H
-    MOV AL,'0'
-    INT 10H
-    RET
-SHOW_MINSCORE ENDP
-
-SHOW_LEVEL PROC
-    MOV DL,15
-    MOV DH,1
-    MOV AH,02
-    INT 10H
-    LEA DX,LV
-    MOV AH,09
-    INT 21H
-    MOV DL,20
-    MOV DH,1
-    MOV AH,02
-    INT 10H
-    MOV BL,0CH;RED
-    MOV AH,0EH
-    MOV AL,'1'
-    INT 10H
-    RET
-SHOW_LEVEL ENDP
-
-CALC_SCORE PROC
-    CMP SCORE_2,'9'
-    JE TENTH_PLACE
-    INC SCORE_2
-    JMP LAST
-    TENTH_PLACE:
-        CMP SCORE_1,'9'
-        JE HUNDREDTH_PLACE
-        INC SCORE_1
-        MOV SCORE_2,'0'
-        JMP LAST
-    HUNDREDTH_PLACE:
-        INC SCORE_0
-        MOV SCORE_1,'0'
-        MOV SCORE_2,'0'
-        JMP LAST
-   LAST:
-   CALL SHOW_SCORE
-   RET
-CALC_SCORE ENDP
-
-check proc 
-    MOV AH,0DH 
-    MOV BH,0 
-    INT 10H;reads the pixel  
-    cmp al,0DH;al contains the colour 
-    jne ex 
-    mov bool,1
-    ex:
-    ret 
-check endp
         
 ends
 

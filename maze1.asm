@@ -12,8 +12,20 @@ data segment
     MIN_SCORE DB "MIN STEP:","$"
     LV DB "LV.","$"
     QUIT_MSG DW "DO YOU WANT TO QUIT?","$"
-    CONFIRMATION DB "(PRESS y TO CONFIRM)","$"
+    CONFIRMATION DB "(PRESS y TO CONFIRM, n TO DENY)","$"
+    CONFIRMATIONLVL DB "(PRESS y TO CONFIRM)","$"
     LVL_UP_MSG DB "DO YOU WANT TO MOVE TO NEXT LEVEL?","$"
+    GAME1 DW "WELCOME TO MAZE RUN","$"
+    GAME2 DW "PRESS 's' TO START GAME","$" 
+    GAME3 DW "PRESS 'i' FOR INSTRUCTIONS","$"
+    INSTR1 DW "USE ARROW KEYS TO MOVE","$"
+    INSTR2 DW "MOVE THE CHARACTER TO GO OUT OF THE MAZE","$"
+    INSTR3 DW "PRESS ESC ANYTIME TO PAUSE OR END THE GAME","$"
+    INSTR4 DW "STEPS ARE CALCULATED AND SHOWN AT THE TOP","$"
+    INSTR5 DW "MINIMUM STEPS ARE SHOWN AS A CHALLENGE FOR YOU","$"
+    INSTR6 DW "PRESS 'esc' TO GO BACK TO MAIN MENU","$"
+    GAMECOMPLETE DW "YOU HAVE COMPLETED ALL 3 MAZE RUNS SUCCESSSFULLY","$" 
+    CONG DW "CONGRATULATIONS!!!" ,"$" 
     bool db 0
     LV2_DOWN_BOUND DW 16
     LV2_UP_BOUND DW 4
@@ -42,9 +54,112 @@ MAIN PROC
     MOV AH,00H;SET VIDEO MODE
     MOV AL,12H;RESOLUTION
     INT 10H
-    CALL LEVEL1
+    CALL MAINMENU
     ret     
 MAIN ENDP
+;------------------------------------------------------
+
+MAINMENU PROC
+        CALL CLEAR_SCR
+        MOV DL,28
+        MOV DH,3
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME1
+        MOV AH,09H
+        INT 21H 
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME2
+        MOV AH,09H
+        INT 21H  
+        MOV DL,25
+        MOV DH,7
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME3
+        MOV AH,09H
+        INT 21H
+        CHECKAGAINMAIN:
+        MOV AH,07H
+        INT 21H
+        CMP AL,73H;s
+        JE STARTGAME
+        CMP AL,69H;i
+        JE INSTRUCT
+        JMP CHECKAGAINMAIN
+        
+        STARTGAME:
+            CALL CLEAR_SCR
+            CALL LEVEL1
+            RET
+        INSTRUCT:
+            CALL CLEAR_SCR
+            CALL INSTRUCTION
+            RET
+        RET
+MAINMENU ENDP
+
+;------------------------------------------------------
+
+INSTRUCTION PROC
+    CALL CLEAR_SCR
+    MOV DL,28
+    MOV DH,5
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR1
+    MOV AH,09H
+    INT 21H 
+    MOV DL,20
+    MOV DH,6
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR2
+    MOV AH,09H
+    INT 21H  
+    MOV DL,20
+    MOV DH,7
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR3
+    MOV AH,09H
+    INT 21H 
+    MOV DL,20
+    MOV DH,8
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR4
+    MOV AH,09H
+    INT 21H
+    MOV DL,18
+    MOV DH,9
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR5
+    MOV AH,09H
+    INT 21H
+    MOV DL,22
+    MOV DH,12
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR6
+    MOV AH,09H
+    INT 21H
+    CHECKAGAININSTR:
+        MOV AH,07H
+        INT 21H
+        CMP AL,1BH;esc
+        JE MAINMENUINSTR
+        JMP CHECKAGAININSTR
+    MAINMENUINSTR:
+        CALL MAINMENU
+        RET
+    RET    
+INSTRUCTION ENDP
+
 ;------------------------------------------------------
 
 CLEAR_SCR PROC
@@ -55,7 +170,7 @@ CLEAR_SCR PROC
     CLEAR:
     INT 10H
     INC CX
-    CMP CX,500
+    CMP CX,550
     JNG CLEAR
     MOV CX,0
     INC DX
@@ -215,8 +330,24 @@ INPUT PROC
         INT 21H
         CMP AL,79H
         JE ENDGAME
+        CMP AL,6EH
+        JE CONTINUEGAME
         JMP CHECKAGAIN
         RET
+    CONTINUEGAME:
+        CALL CLEAR_SCR
+        CMP CURR_LV,1
+        JE LV1CONTINUE
+        CMP CURR_LV,2
+        JE LV2CONTINUE
+        CMP CURR_LV,3
+        JE LV3CONTINUE
+    LV1CONTINUE:
+        CALL LEVEL1
+    LV2CONTINUE:
+        CALL LEVEL2
+    LV3CONTINUE:
+        CALL LEVEL3
     exit:
         mov ah,02h
         mov dl,07h
@@ -224,6 +355,8 @@ INPUT PROC
         mov bool,0 
         jmp inp
     LVCOMPLETE:
+        CMP CURR_LV,3
+        JE ENDGAME
         CALL CLEAR_SCR
         MOV DL,25
         MOV DH,5
@@ -236,13 +369,13 @@ INPUT PROC
         MOV DH,6
         MOV AH,02
         INT 10H
-        LEA DX,CONFIRMATION
+        LEA DX,CONFIRMATIONLVL
         MOV AH,09H
         INT 21H
         CHECKAGAINLVL:
         MOV AH,07H
         INT 21H
-        CMP AL,79H
+        CMP AL,79H;y
         JE COMPLETE
         JMP CHECKAGAINLVL
         COMPLETE:
@@ -278,8 +411,37 @@ INPUT ENDP
 ;--------------------------------------------------
 
 ENDGAMEP PROC
-    PUSH AX
-    POP AX
+    CALL CLEAR_SCR
+    MOV DL,20
+    MOV DH,5
+    MOV AH,02
+    INT 10H
+    LEA DX,GAMECOMPLETE
+    MOV AH,09H
+    INT 21H 
+    MOV DL,25
+    MOV DH,8
+    MOV AH,02
+    INT 10H
+    LEA DX,CONG
+    MOV AH,09H
+    INT 21H
+    MOV DL,22
+    MOV DH,12
+    MOV AH,02
+    INT 10H
+    LEA DX,INSTR6
+    MOV AH,09H
+    INT 21H
+    CHECKAGAINEND:
+        MOV AH,07H
+        INT 21H
+        CMP AL,1BH;esc
+        JE MAINMENUEND
+        JMP CHECKAGAINEND
+    MAINMENUEND:
+        CALL MAINMENU 
+    RET
 ENDGAMEP ENDP
 
 ;-------------------------------------------------
@@ -351,7 +513,7 @@ SHOW_MINSCORE1 PROC
     INT 10H
     MOV AL,'8'
     INT 10H
-    MOV AL,'2'
+    MOV AL,'1'
     INT 10H
     RET
 SHOW_MINSCORE1 ENDP
@@ -1173,16 +1335,8 @@ CREATE_MAZE3 PROC
     L2V3:
     INC DX
     INT 10H
-    CMP DX,290
-    JB L2V3
-    
-    MOV DX,310
-    MOV CX,300
-    L2V4:
-    INC DX
-    INT 10H
     CMP DX,350
-    JB L2V4  
+    JB L2V3  
     
     MOV DX,50
     MOV CX,0
@@ -1197,8 +1351,16 @@ CREATE_MAZE3 PROC
     L2H2:
     INC CX
     INT 10H
-    CMP CX,300
+    CMP CX,200
     JB L2H2
+    
+    MOV DX,350
+    MOV CX,220
+    L3H2:
+    INC CX
+    INT 10H
+    CMP CX,300
+    JB L3H2
     
     MOV DX,50
     MOV CX,80

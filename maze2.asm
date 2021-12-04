@@ -15,7 +15,11 @@ data segment
     CONFIRMATION DB "(PRESS y TO CONFIRM)","$"
     LVL_UP_MSG DB "DO YOU WANT TO MOVE TO NEXT LEVEL?","$"   
     GAMECOMPLETE DW "YOU HAVE COMPLETED ALL 3 MAZE RUNS SUCCESSSFULLY","$" 
-    CONG DW "CONGRATULATIONS!!!" ,"$"
+    CONG DW "CONGRATULATIONS!!!" ,"$"  
+    GAME1 DW "WELCOME TO MAZE RUN"."$"
+    GAME2 DW "PRESS 's' TO START GAME","$" 
+    GAME3 DW "PRESS 'i' FOR INSTRUCTIONS" "$"
+    GAME4 DW "PRESS ESC KEY TO QUIT GAME","$"
     bool db 0
     LV2_DOWN_BOUND DW 16
     LV2_UP_BOUND DW 4
@@ -47,8 +51,40 @@ MAIN PROC
     CALL LEVEL1
     ret     
 MAIN ENDP
+;------------------------------------------------------ 
+MAINMENU PROC
+        CALL CLEAR_SCR
+        MOV DL,22
+        MOV DH,3
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME1
+        MOV AH,09H
+        INT 21H 
+        MOV DL,25
+        MOV DH,6
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME2
+        MOV AH,09H
+        INT 21H  
+        MOV DL,25
+        MOV DH,7
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME3
+        MOV AH,09H
+        INT 21H 
+        MOV DL,25
+        MOV DH,8
+        MOV AH,02
+        INT 10H
+        LEA DX,GAME4
+        MOV AH,09H
+        INT 21H 
+        RET
+MAINMENU ENDP
 ;------------------------------------------------------
-
 CLEAR_SCR PROC
     MOV CX,0
     MOV DX,0

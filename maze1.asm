@@ -1,5 +1,4 @@
 ; multi-segment executable file template.
-
 data segment
     ; add your data here!
     CHAR_X DW 5
@@ -37,11 +36,11 @@ data segment
     LV3_RIGHT_BOUND DW 15
     CURR_LV DB 1
 ends
-
+;------------------------------------------------------
 stack segment
     dw   128  dup(0)
 ends
-
+;--------------------------------------------------------
 code segment
 start:
 MAIN PROC
@@ -84,7 +83,7 @@ MAINMENU PROC
         INT 21H
         CHECKAGAINMAIN:
         MOV AH,07H
-        INT 21H
+        INT 21H;char input
         CMP AL,73H;s
         JE STARTGAME
         CMP AL,69H;i
@@ -93,6 +92,11 @@ MAINMENU PROC
         
         STARTGAME:
             CALL CLEAR_SCR
+            MOV SCORE_0,'0'
+            MOV SCORE_1,'0'
+            MOV SCORE_2,'0'
+            MOV CHAR_X,5
+            MOV CHAR_Y,54
             CALL LEVEL1
             RET
         INSTRUCT:
@@ -236,7 +240,9 @@ DRAW_CHAR PROC
     JNG DRAW
     RET    
 DRAW_CHAR ENDP
+
 ;--------------------------------------------------
+
 INPUT PROC
     INP:
         MOV AH,00H
@@ -328,9 +334,9 @@ INPUT PROC
         CHECKAGAIN:
         MOV AH,07H
         INT 21H
-        CMP AL,79H
+        CMP AL,79H;y
         JE ENDGAME
-        CMP AL,6EH
+        CMP AL,6EH;n
         JE CONTINUEGAME
         JMP CHECKAGAIN
         RET
@@ -408,6 +414,7 @@ INPUT PROC
             RET
         RET
 INPUT ENDP
+
 ;--------------------------------------------------
 
 ENDGAMEP PROC
@@ -557,7 +564,7 @@ SHOW_MINSCORE3 PROC
     MOV AH,0EH
     MOV AL,'1'
     INT 10H
-    MOV AL,'1'
+    MOV AL,'4'
     INT 10H
     MOV AL,'0'
     INT 10H

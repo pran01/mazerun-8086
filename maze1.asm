@@ -335,7 +335,7 @@ INPUT PROC
         MOV AH,07H
         INT 21H
         CMP AL,79H;y
-        JE ENDGAME
+        JE MAINMENUINSTR
         CMP AL,6EH;n
         JE CONTINUEGAME
         JMP CHECKAGAIN
